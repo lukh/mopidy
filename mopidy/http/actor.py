@@ -167,7 +167,9 @@ class HttpServer(threading.Thread):
         return result
 
     def _get_mopidy_request_handlers(self):
+        root_redirection = "mopidy" if self.config['http']['root_redirection'] is None else self.config['http']['root_redirection'] 
+        
         return [(r'/', tornado.web.RedirectHandler, {
-            'url': '/mopidy/',
+            'url': '/{}/'.format(root_redirection),
             'permanent': False,
         })]
