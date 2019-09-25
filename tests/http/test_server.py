@@ -21,6 +21,7 @@ class HttpServerTest(tornado.testing.AsyncHTTPTestCase):
                 'zeroconf': '',
                 'allowed_origins': [],
                 'csrf_protection': True,
+                'default_webapp': 'mopidy'
             }
         }
 
@@ -232,6 +233,7 @@ class HttpServerWithStaticFilesTest(tornado.testing.AsyncHTTPTestCase):
                 'hostname': '127.0.0.1',
                 'port': 6680,
                 'zeroconf': '',
+                'default_webapp': 'mopidy'
             }
         }
         core = mock.Mock()
@@ -282,6 +284,7 @@ class HttpServerWithWsgiAppTest(tornado.testing.AsyncHTTPTestCase):
                 'hostname': '127.0.0.1',
                 'port': 6680,
                 'zeroconf': '',
+                'default_webapp': 'mopidy'
             }
         }
         core = mock.Mock()
