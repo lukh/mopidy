@@ -171,12 +171,20 @@ class HttpServer(threading.Thread):
         return result
 
     def _get_mopidy_request_handlers(self):
-        apps = [app['name'] for app in self.apps]
-        default_webapp = self.config['http']['default_webapp']
-        default_webapp = default_webapp if default_webapp in apps else 'mopidy'
+        sites = [app['name'] for app in self.apps]
+        sites.extend([static['name'] for static in self.statics])
+
+        default_webclient = self.config['http']['default_webclient']
+        if default_webclient not in sites:
+            logger.warning(
+                'Invalid default_webclient %s, using mopidy',
+                default_webclient)
+
+            default_webclient = 'mopidy'
+        logger.debug('Default webclient is %s', default_webclient)
 
         return [(r'/', tornado.web.RedirectHandler, {
-            'url': '/{}/'.format(default_webapp),
+            'url': '/{}/'.format(default_webclient),
             'permanent': False,
         })]
 
