@@ -4,7 +4,8 @@ import logging
 import os
 import pathlib
 import re
-from collections.abc import Mapping
+from collections import Mapping
+from collections import OrderedDict
 
 from mopidy.config import keyring
 from mopidy.config.schemas import ConfigSchema, MapConfigSchema
@@ -143,7 +144,7 @@ def format_initial(extensions_data):
 
 
 def _load(files, defaults, overrides):
-    parser = configparser.RawConfigParser()
+    parser = configparser.RawConfigParser(dict_type=OrderedDict)
 
     # TODO: simply return path to config file for defaults so we can load it
     # all in the same way?
@@ -163,9 +164,9 @@ def _load(files, defaults, overrides):
         else:
             _load_file(parser, f.resolve())
 
-    raw_config = {}
+    raw_config = OrderedDict()
     for section in parser.sections():
-        raw_config[section] = dict(parser.items(section))
+        raw_config[section] = OrderedDict(parser.items(section))
 
     logger.info("Loading config from command line options")
     for section, key, value in overrides:
@@ -212,12 +213,12 @@ def _load_file(parser, file_path):
 
 def _validate(raw_config, schemas):
     # Get validated config
-    config = {}
+    config = OrderedDict()
     errors = {}
     sections = set(raw_config)
     for schema in schemas:
         sections.discard(schema.name)
-        values = raw_config.get(schema.name, {})
+        values = raw_config.get(schema.name, OrderedDict())
         result, error = schema.deserialize(values)
         if error:
             errors[schema.name] = error

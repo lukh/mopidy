@@ -1,6 +1,11 @@
+# from __future__ import absolute_import, unicode_literals
+
+import binascii
 import json
 import logging
+import os
 import threading
+import pathlib
 
 import pykka
 import tornado.httpserver
@@ -11,8 +16,8 @@ import tornado.websocket
 
 from mopidy import exceptions, models, zeroconf
 from mopidy.core import CoreListener
-from mopidy.http import handlers
-from mopidy.internal import encoding, formatting, network
+from mopidy.http import Extension, handlers
+from mopidy.internal import encoding, formatting, network, storage
 
 try:
     import asyncio
@@ -114,7 +119,9 @@ class HttpServer(threading.Thread):
             # explicitly create an asyncio loop for the current thread.
             asyncio.set_event_loop(asyncio.new_event_loop())
 
-        self.app = tornado.web.Application(self._get_request_handlers())
+        self.app = tornado.web.Application(
+            self._get_request_handlers(),
+            cookie_secret=self._get_cookie_secret())
         self.server = tornado.httpserver.HTTPServer(self.app)
         self.server.add_sockets(self.sockets)
 
@@ -177,10 +184,38 @@ class HttpServer(threading.Thread):
         return result
 
     def _get_mopidy_request_handlers(self):
-        return [
-            (
-                "/",
-                tornado.web.RedirectHandler,
-                {"url": "/mopidy/", "permanent": False},
-            )
-        ]
+        sites = [app['name'] for app in self.apps + self.statics]
+
+        default_webclient = self.config['http']['default_webclient']
+        if default_webclient not in sites:
+            logger.warning(
+                'Invalid default_webclient %s, '
+                'Ignoring unknown default webclient',
+                default_webclient)
+
+            default_webclient = 'mopidy'
+        logger.debug('Default webclient is %s', default_webclient)
+
+        return [(r'/', tornado.web.RedirectHandler, {
+            'url': '/{}/'.format(default_webclient),
+            'permanent': False,
+        })]
+
+    def _get_cookie_secret(self):
+        data_path = pathlib.Path(os.path.join(
+            Extension.get_data_dir(self.config),
+            'data.json.gz'))
+
+        if not data_path.is_file():
+            # TODO Py3: Move to secrets
+            cookie_secret = binascii.hexlify(os.urandom(32))
+            storage.dump(data_path, {'cookie_secret': cookie_secret})
+
+        else:
+            data = storage.load(data_path)
+            cookie_secret = data.get('cookie_secret', '').strip()
+            if not cookie_secret:
+                logging.error('Missing cookie_secret in %s',
+                              encoding.locale_decode(data_path))
+
+        return cookie_secret
