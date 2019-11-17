@@ -17,6 +17,7 @@ class HttpServerTest(tornado.testing.AsyncHTTPTestCase):
                 "zeroconf": "",
                 "allowed_origins": [],
                 "csrf_protection": True,
+                "default_webclient": "mopidy",
             }
         }
 
@@ -268,7 +269,12 @@ class MopidyRPCHandlerNoCSRFProtectionTest(HttpServerTest):
 class HttpServerWithStaticFilesTest(tornado.testing.AsyncHTTPTestCase):
     def get_app(self):
         config = {
-            "http": {"hostname": "127.0.0.1", "port": 6680, "zeroconf": ""}
+            "http": {
+                "hostname": "127.0.0.1",
+                "port": 6680,
+                "zeroconf": "",
+                "default_webclient": "static",
+            }
         }
         core = mock.Mock()
 
@@ -313,7 +319,12 @@ def wsgi_app_factory(config, core):
 class HttpServerWithWsgiAppTest(tornado.testing.AsyncHTTPTestCase):
     def get_app(self):
         config = {
-            "http": {"hostname": "127.0.0.1", "port": 6680, "zeroconf": ""}
+            "http": {
+                "hostname": "127.0.0.1",
+                "port": 6680,
+                "zeroconf": "",
+                "default_webclient": "wsgi",
+            }
         }
         core = mock.Mock()
 
@@ -334,5 +345,105 @@ class HttpServerWithWsgiAppTest(tornado.testing.AsyncHTTPTestCase):
     def test_can_wrap_wsgi_apps(self):
         response = self.fetch("/wsgi/", method="GET")
 
-        assert 200 == response.code
-        assert "Hello, world!" in tornado.escape.to_unicode(response.body)
+        self.assertEqual(200, response.code)
+        self.assertIn("Hello, world!", tornado.escape.to_unicode(response.body))
+
+
+def default_webapp_factory(config, core):
+    class MainHandler(tornado.web.RequestHandler):
+        def get(self):
+            self.write("Hello from default webapp")
+
+    return [("/", MainHandler, {})]
+
+
+class HttpServerWithAppDefaultWebClient(tornado.testing.AsyncHTTPTestCase):
+    def get_app(self):
+        config = {
+            "http": {
+                "hostname": "127.0.0.1",
+                "port": 6680,
+                "zeroconf": "",
+                "default_webclient": "default_webclient",
+            }
+        }
+        core = mock.Mock()
+
+        apps = [dict(name="default_webclient", factory=default_webapp_factory)]
+
+        http_server = actor.HttpServer(
+            config=config, core=core, sockets=[], apps=apps, statics=[]
+        )
+
+        return tornado.web.Application(http_server._get_request_handlers())
+
+    def test_should_redirect_to_default_webclient(self):
+        response = self.fetch("/", method="GET", follow_redirects=False)
+
+        self.assertEqual(response.code, 302)
+        self.assertEqual(response.headers["Location"], "/default_webclient/")
+
+        response = self.fetch(
+            "/default_webclient/", method="GET", follow_redirects=True
+        )
+
+        self.assertEqual(200, response.code)
+        self.assertIn(
+            "Hello from default webapp",
+            tornado.escape.to_unicode(response.body),
+        )
+
+
+class HttpServerWithStaticDefaultWebClient(tornado.testing.AsyncHTTPTestCase):
+    def get_app(self):
+        config = {
+            "http": {
+                "hostname": "127.0.0.1",
+                "port": 6680,
+                "zeroconf": "",
+                "default_webclient": "default_webclient",
+            }
+        }
+        core = mock.Mock()
+
+        statics = [
+            dict(name="default_webclient", path=os.path.dirname(__file__))
+        ]
+
+        http_server = actor.HttpServer(
+            config=config, core=core, sockets=[], apps=[], statics=statics
+        )
+
+        return tornado.web.Application(http_server._get_request_handlers())
+
+    def test_should_redirect_to_default_webclient(self):
+        response = self.fetch("/", method="GET", follow_redirects=False)
+
+        self.assertEqual(response.code, 302)
+        self.assertEqual(response.headers["Location"], "/default_webclient/")
+
+
+class HttpServerWithInvalidDefaultWebClient(HttpServerTest):
+    def get_config(self):
+        config = super(HttpServerWithInvalidDefaultWebClient, self).get_config()
+        config["http"]["default_webclient"] = "invalid_webclient"
+        return config
+
+    def test_should_redirect_to_clients_list(self):
+        response = self.fetch("/", method="GET", follow_redirects=False)
+
+        self.assertEqual(response.code, 302)
+        self.assertEqual(response.headers["Location"], "/mopidy/")
+
+        response = self.fetch("/", method="GET")
+        body = tornado.escape.to_unicode(response.body)
+
+        self.assertIn(
+            "This web server is a part of the Mopidy music server.", body
+        )
+        self.assertIn("testapp", body)
+        self.assertIn("teststatic", body)
+        self.assertEqual(
+            response.headers["X-Mopidy-Version"], mopidy.__version__
+        )
+        self.assertEqual(response.headers["Cache-Control"], "no-cache")
