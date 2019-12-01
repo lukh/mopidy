@@ -471,7 +471,12 @@ class HttpServerTestLoginWithSecureCookie(tornado.testing.AsyncHTTPTestCase):
         self._dirpath = tempfile.mkdtemp()
 
         config = {
-            "http": {"hostname": "127.0.0.1", "port": 6680, "zeroconf": ""},
+            "http": {
+                "hostname": "127.0.0.1",
+                "port": 6680,
+                "zeroconf": "",
+                "default_app": "cookie_secret",
+            },
             "core": {"data_dir": self._dirpath},
         }
         core = mock.Mock()
@@ -516,7 +521,12 @@ class HttpServerTestCookieSecret(TestCase):
         self._dirpath = tempfile.mkdtemp()
 
         config = {
-            "http": {"hostname": "127.0.0.1", "port": 6680, "zeroconf": ""},
+            "http": {
+                "hostname": "127.0.0.1",
+                "port": 6680,
+                "zeroconf": "",
+                "default_app": "cookie_secret",
+            },
             "core": {"data_dir": self._dirpath},
         }
         core = mock.Mock()
