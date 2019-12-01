@@ -226,6 +226,10 @@ HTTP frontend
   It is the name used by the extension when it registers its ``http:static``
   or ``http:app``. (PR: :issue:`1791`)
 
+- Add cookie secret to Tornado web server, allowing tornado handlers to call
+  get_secure_cookie, in an overrided implementation of get_current_user.
+  (PR: :issue:`1801`)
+
 MPD frontend
 ------------
 
