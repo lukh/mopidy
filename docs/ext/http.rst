@@ -111,8 +111,8 @@ See :ref:`config` for general help on configuring Mopidy.
     and require the HTTP server's old behaviour.
 
 
-.. confval:: http/default_webclient
+.. confval:: http/default_app
 
-    Redirect "hostname:port" to a specific web client instead of the default page.
+    Redirect ``http:hostname``:``http:port`` to a specific web app instead of the default page.
     It is the name used by the extension when it registers its ``http:static`` or ``http:app``.
     By convention, it should be identical with the extension’s ``ext_name``.

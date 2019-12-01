@@ -206,6 +206,10 @@ Extension support
 
   This makes it easier to support arbitrary encoding in file names.
 
+- The command :command:`mopidy deps` no longer repeats the dependencies of
+  Mopidy itself for every installed extension. This reduces the length of the
+  command's output drastically. (PR: :issue:`1846`)
+
 HTTP frontend
 -------------
 
@@ -217,6 +221,10 @@ HTTP frontend
 - Remove support for serving arbitrary files over HTTP through the use of
   :confval:`http/static_dir`, which has been deprecated since 1.0. (Fixes:
   :issue:`1463`, PR: :issue:`1706`)
+
+- Add option ``default_app`` to redirect ``http:hostname``:``http:port`` to a specific app.
+  It is the name used by the extension when it registers its ``http:static``
+  or ``http:app``. (PR `1791`)
 
 MPD frontend
 ------------

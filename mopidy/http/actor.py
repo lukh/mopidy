@@ -137,7 +137,7 @@ class HttpServer(threading.Thread):
         request_handlers = []
         request_handlers.extend(self._get_app_request_handlers())
         request_handlers.extend(self._get_static_request_handlers())
-        request_handlers.extend(self._get_mopidy_request_handlers())
+        request_handlers.extend(self._get_default_request_handlers())
 
         logger.debug(
             "HTTP routes from extensions: %s",
@@ -182,24 +182,22 @@ class HttpServer(threading.Thread):
             logger.debug("Loaded static HTTP extension: %s", static["name"])
         return result
 
-    def _get_mopidy_request_handlers(self):
+    def _get_default_request_handlers(self):
         sites = [app["name"] for app in self.apps + self.statics]
 
-        default_webclient = self.config["http"]["default_webclient"]
-        if default_webclient not in sites:
+        default_app = self.config["http"]["default_app"]
+        if default_app not in sites:
             logger.warning(
-                f"Invalid default_webclient {default_webclient}, "
-                "Ignoring unknown default webclient"
+                f"HTTP server's default app {default_app!r} not found"
             )
-
-            default_webclient = "mopidy"
-        logger.debug(f"Default webclient is {default_webclient}")
+            default_app = "mopidy"
+        logger.debug(f"Default webclient is {default_app}")
 
         return [
             (
                 r"/",
                 tornado.web.RedirectHandler,
-                {"url": f"/{default_webclient}/", "permanent": False},
+                {"url": f"/{default_app}/", "permanent": False},
             )
         ]
 
