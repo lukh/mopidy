@@ -573,8 +573,8 @@ class Audio(pykka.ThreadingActor):
         else:
             self._appsrc.reset()
 
-        if self._live_stream and source.__class__.__name__ == "GstSoupHTTPSrc":
-            gst_logger.debug("HTTP Src - setting live mode")
+        if self._live_stream and hasattr(source.props, "is_live"):
+            gst_logger.debug("Enabling live stream mode")
             source.set_live(True)
 
         utils.setup_proxy(source, self._config["proxy"])
@@ -587,6 +587,9 @@ class Audio(pykka.ThreadingActor):
 
         :param uri: the URI to play
         :type uri: string
+        :param live_stream: disables buffering, reducing latency for stream,
+            and discarding data when paused
+        :type live_stream: bool
         """
 
         # XXX: Hack to workaround issue on Mac OS X where volume level
